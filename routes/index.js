@@ -27,9 +27,14 @@ app.options('*', cors())
 router.get('/', (req, res) => {
     res.send({ response: 'I am alive' }).status(200);
 });
-router.get('/test', function (req, res, next) {
-    console.log(req.header('Host'))
-    res.json({msg: 'This is CORS-enabled for a whitelisted domain.'})
-})
+
+router.post('/login', (req, res, next) => {
+    // 
+});
+
+// router.get('/test', function (req, res, next) {
+//     console.log(req.header('Host'))
+//     res.json({msg: 'This is CORS-enabled for a whitelisted domain.'})
+// })
 
 module.exports = router;

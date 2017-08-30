@@ -6,6 +6,8 @@ const port = process.env.PORT || 4001;
 const index = require('./routes/index');
 const app = express();
 app.use(index);
+const configs = require('./configs');
+const ApiUrl = configs.ApiUrl;
 
 const server = http.createServer(app);
 const io = socketIo(server); // < Interesting!
@@ -18,37 +20,58 @@ io.origins((origin, callback) => {
 });
 
 io.on('connection', socket => {
-    console.log('New client connected'), setInterval(
-        () => getApiAndEmit(socket),
-        10000
-    );
-    socket.on('test', (name, fn) => {
-        manageDataform(socket, name)
-        fn('test')
-    });
-    socket.on('disconnect', () => console.log('Client disconnected'));
+    User.hasConnect(socket);
+    socket.on('disconnect', () => User.hasDisconnect(socket));
+    socket.on('login', (data, fn) => User.hasLogin(data, fn));
 });
 
-const getApiAndEmit = async socket => {
-    try {
-        const res = await axios.get(
-            'http://localhost/laravel-develop/public/io_user'
-        );
-        socket.emit('FromAPI', res.data);
-    } catch (error) {
-        console.error(`Error: ${error.code}`);
-    }
+var User = {
+    hasConnect(socket) {
+        socket.emit('CheckData', socket.id);
+    },
+    hasDisconnect(socket) {
+    },
+    hasLogin(data, fn) {
+        console.log(data)
+        let objResponse = {};
+        axios({
+            method: 'POST',
+            url: ApiUrl + '/realtime/login',
+            data: data,
+            dataType: 'JSON',
+            async: false,
+        }).then(function(response) {
+            objResponse = response;
+            if (typeof fn == 'function')
+                fn(response.data);
+            socket.emit('res_login', response.data);
+        }).catch(function(error) {
+            if (typeof fn == 'function')
+                fn({rs: 0, error: error.text});
+        });
+    },
 };
-const manageDataform = async socket => {
-    try
-    {
-        const res = await axios.get(
-            'http://localhost/laravel-develop/public/io_user'
-        );
-        socket.emit('FromTest', res);
-    } catch (error) {
-        console.error(`Error: ${error.code}`);
-    }
-};
+
+// const getApiAndEmit = async socket => {
+//     try {
+//         const res = await axios.get(
+//             'http://localhost/laravel-develop/public/io_user'
+//         );
+//         socket.emit('FromAPI', res.data);
+//     } catch (error) {
+//         console.error(`Error: ${error.code}`);
+//     }
+// };
+// const manageDataform = async socket => {
+//     try
+//     {
+//         const res = await axios.get(
+//             'http://localhost/laravel-develop/public/io_user'
+//         );
+//         socket.emit('FromTest', res);
+//     } catch (error) {
+//         console.error(`Error: ${error.code}`);
+//     }
+// };
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
